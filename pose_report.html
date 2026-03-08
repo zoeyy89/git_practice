@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Train139/140 vs YOLO11s-Pose — 左側 / 右側</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: #f7f7f5;
+    color: #111;
+    font-family: 'Noto Sans TC', sans-serif;
+    padding: 48px 32px;
+  }
+
+  .container { max-width: 1040px; margin: 0 auto; }
+
+  /* ── Header ── */
+  .header {
+    border-bottom: 2px solid #111;
+    padding-bottom: 24px;
+    margin-bottom: 36px;
+  }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #666;
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #111;
+    line-height: 1.15;
+  }
+
+  .subtitle {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #666;
+    font-family: 'IBM Plex Mono', monospace;
+    line-height: 1.7;
+  }
+
+  /* ── Side Toggle ── */
+  .toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 36px;
+    border: 2px solid #111;
+    border-radius: 8px;
+    overflow: hidden;
+    width: fit-content;
+  }
+
+  .toggle-btn {
+    padding: 12px 36px;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    background: #fff;
+    color: #666;
+    transition: background 0.2s, color 0.2s;
+    letter-spacing: 0.02em;
+  }
+
+  .toggle-btn.active {
+    background: #111;
+    color: #fff;
+  }
+
+  .toggle-btn:first-child { border-right: 2px solid #111; }
+
+  /* ── Dynamic label ── */
+  .side-label {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 3px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  .side-label.left  { background: #e8f0fe; color: #1a3e8a; }
+  .side-label.right { background: #fce8e6; color: #8a1a1a; }
+
+  /* ── Summary cards ── */
+  .summary-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 36px;
+  }
+
+  .summary-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .summary-card.highlight { border-color: #111; background: #111; }
+
+  .sc-name {
+    font-size: 11px; color: #888;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px;
+  }
+
+  .sc-label { font-size: 15px; font-weight: 600; color: #111; }
+  .highlight .sc-name  { color: #aaa; }
+  .highlight .sc-label { color: #fff; }
+
+  .sc-right { text-align: right; }
+
+  .sc-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 36px; font-weight: 600;
+    letter-spacing: -0.03em; color: #111;
+  }
+
+  .highlight .sc-val { color: #fff; }
+
+  .sc-sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: #888; margin-top: 2px;
+  }
+
+  /* ── Section label ── */
+  .section-label {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.1em; color: #555;
+    border-left: 3px solid #111;
+    padding-left: 10px; margin-bottom: 14px;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex; gap: 24px;
+    margin-bottom: 16px;
+    font-size: 12px; color: #555; align-items: center;
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 7px; }
+
+  .legend-bar { width: 28px; height: 7px; border-radius: 4px; }
+  .legend-bar.bfine { background: #111; }
+  .legend-bar.bbase { background: #bbb; }
+
+  /* ── Table ── */
+  .cmp-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 48px;
+    font-size: 13px;
+  }
+
+  .cmp-table thead tr {
+    background: #f0f0ee;
+    border-bottom: 2px solid #ccc;
+  }
+
+  .cmp-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: #444;
+    padding: 12px 14px; text-align: left;
+  }
+
+  .cmp-table th.center { text-align: center; }
+
+  .cmp-table tr.group-header td {
+    background: #f7f7f5;
+    border-top: 1px solid #ddd; border-bottom: 1px solid #ddd;
+    padding: 6px 14px;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.05em; color: #666;
+  }
+
+  .cmp-table td {
+    padding: 11px 14px;
+    border-bottom: 1px solid #eee;
+    color: #111; vertical-align: middle;
+  }
+
+  .cmp-table tr:last-child td { border-bottom: none; }
+
+  .cmp-table tr.total-row td {
+    background: #f0f0ee;
+    border-top: 2px solid #ccc;
+    font-weight: 700;
+  }
+
+  .kpt-name-cell { min-width: 150px; }
+
+  .kpt-zh { font-size: 13px; font-weight: 500; color: #111; }
+  .kpt-en { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #999; margin-top: 1px; }
+
+  .bar-cell { min-width: 180px; }
+
+  .dual-bar { display: flex; flex-direction: column; gap: 4px; }
+
+  .bar-row { display: flex; align-items: center; gap: 8px; }
+
+  .bar-who {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; color: #888;
+    width: 28px; flex-shrink: 0; text-transform: uppercase;
+  }
+
+  .bar-track {
+    flex: 1; height: 7px;
+    background: #ebebeb; border-radius: 4px;
+    overflow: hidden; min-width: 80px;
+  }
+
+  .bar-fill { height: 100%; border-radius: 4px; }
+  .fill-fine { background: #111; }
+  .fill-base { background: #bbb; }
+
+  .bar-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; width: 36px;
+    text-align: right; flex-shrink: 0; color: #111;
+  }
+
+  .bar-val.warn { color: #b45309; font-weight: 600; }
+  .bar-val.bad  { color: #b91c1c; font-weight: 600; }
+  .bar-val.good { font-weight: 600; }
+
+  .delta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; padding: 2px 7px;
+    border-radius: 3px; white-space: nowrap; display: inline-block;
+  }
+
+  .delta.pos  { background: #e6f4ec; color: #1a7a4a; }
+  .delta.zero { background: #f0f0ee; color: #888; }
+  .delta.neg  { background: #fee2e2; color: #b91c1c; }
+
+  /* footer */
+  .footer {
+    margin-top: 16px; padding-top: 16px;
+    border-top: 1px solid #ddd;
+    display: flex; justify-content: space-between;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: #888; letter-spacing: 0.08em;
+  }
+
+  @media (max-width: 700px) {
+    .summary-row { grid-template-columns: 1fr; }
+    h1 { font-size: 26px; }
+    .toggle-btn { padding: 10px 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="eyebrow">Pose Estimation · Running Gait · Per-Keypoint Analysis</div>
+    <h1>Fine-tuned vs YOLO11s-Pose<br>逐關節 Precision &amp; Recall 比較</h1>
+    <div class="subtitle">
+      OKS thr=0.9 · conf=0.25 · RTMPose labels · KPT_PROFILE=side · epochs=100 · freeze=10
+    </div>
+  </div>
+
+  <!-- Toggle -->
+  <div class="toggle-wrap">
+    <button class="toggle-btn active" id="btn-left" onclick="switchSide('left')">⬅ 左側視角（Train139）</button>
+    <button class="toggle-btn" id="btn-right" onclick="switchSide('right')">右側視角（Train140）➡</button>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-row">
+    <div class="summary-card">
+      <div>
+        <div class="sc-name">Baseline</div>
+        <div class="sc-label">YOLO11s-Pose（原始模型）</div>
+      </div>
+      <div class="sc-right">
+        <div class="sc-val" id="base-f1">0.868</div>
+        <div class="sc-sub" id="base-pr">P=0.936 · R=0.859</div>
+      </div>
+    </div>
+    <div class="summary-card highlight">
+      <div>
+        <div class="sc-name">Fine-tuned ★</div>
+        <div class="sc-label" id="model-name">Train139 <span class="side-label left">左側</span></div>
+      </div>
+      <div class="sc-right">
+        <div class="sc-val" id="fine-f1">0.988</div>
+        <div class="sc-sub" id="fine-pr">P=0.988 · R=0.988</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="section-label">逐關節 Precision &amp; Recall</div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-bar bfine"></div> <span id="legend-fine">Train139（左側 fine-tuned）</span></div>
+    <div class="legend-item"><div class="legend-bar bbase"></div> YOLO11s-Pose（baseline）</div>
+  </div>
+
+  <table class="cmp-table">
+    <thead>
+      <tr>
+        <th style="width:155px">關節點</th>
+        <th class="bar-cell">Precision</th>
+        <th class="bar-cell">Recall</th>
+        <th class="center">Δ Precision</th>
+        <th class="center">Δ Recall</th>
+      </tr>
+    </thead>
+    <tbody id="table-body">
+      <!-- Filled by JS -->
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <span id="footer-left">TRAIN139 · left side · RTMPose labels · side KPT profile</span>
+    <span id="footer-right">Test: side_yellowonly_left_rtmpose · n=255</span>
+  </div>
+
+</div>
+
+<script>
+// ── Data ────────────────────────────────────────────────────────────────────
+const KEYPOINTS = [
+  { zh:'鼻子', en:'nose' },
+  { zh:'左眼', en:'left_eye' },
+  { zh:'右眼', en:'right_eye' },
+  { zh:'左耳', en:'left_ear' },
+  { zh:'右耳', en:'right_ear' },
+  { zh:'左肩', en:'left_shoulder' },
+  { zh:'右肩', en:'right_shoulder' },
+  { zh:'左手肘', en:'left_elbow' },
+  { zh:'右手肘', en:'right_elbow' },
+  { zh:'左手腕', en:'left_wrist' },
+  { zh:'右手腕', en:'right_wrist' },
+  { zh:'左髖', en:'left_hip' },
+  { zh:'右髖', en:'right_hip' },
+  { zh:'左膝', en:'left_knee' },
+  { zh:'右膝', en:'right_knee' },
+  { zh:'左腳踝', en:'left_ankle' },
+  { zh:'右腳踝', en:'right_ankle' },
+];
+
+const GROUPS = [
+  { label:'臉部 Face',       keys:['nose','left_eye','right_eye','left_ear','right_ear'] },
+  { label:'上半身 Upper Body', keys:['left_shoulder','right_shoulder','left_elbow','right_elbow','left_wrist','right_wrist'] },
+  { label:'下半身 Lower Body', keys:['left_hip','right_hip','left_knee','right_knee','left_ankle','right_ankle'] },
+];
+
+// train139 (left) fine-tuned vs baseline — P and R are equal per keypoint
+const DATA = {
+  left: {
+    modelName: 'Train139',
+    sideLabel: '左側',
+    sideClass: 'left',
+    overallFine: { f1:'0.988', pr:'P=0.988 · R=0.988' },
+    overallBase: { f1:'0.868', pr:'P=0.936 · R=0.859' },
+    overallDelta: { p:'+0.052', r:'+0.129' },
+    footer: ['TRAIN139 · left side · RTMPose labels · side KPT profile',
+             'Test: side_yellowonly_left_rtmpose · n=255'],
+    legend: 'Train139（左側 fine-tuned）',
+    // [fine_P, fine_R, base_P, base_R]
+    kpts: {
+      nose:           [1.000, 1.000, 0.933, 0.933],
+      left_eye:       [1.000, 1.000, 0.933, 0.933],
+      right_eye:      [1.000, 1.000, 1.000, 0.600],
+      left_ear:       [1.000, 1.000, 0.933, 0.933],
+      right_ear:      [0.867, 0.867, 0.000, 0.000],
+      left_shoulder:  [1.000, 1.000, 1.000, 1.000],
+      right_shoulder: [1.000, 1.000, 1.000, 1.000],
+      left_elbow:     [1.000, 1.000, 1.000, 1.000],
+      right_elbow:    [1.000, 1.000, 0.867, 0.867],
+      left_wrist:     [1.000, 1.000, 1.000, 1.000],
+      right_wrist:    [0.933, 0.933, 0.600, 0.600],
+      left_hip:       [1.000, 1.000, 1.000, 1.000],
+      right_hip:      [1.000, 1.000, 1.000, 1.000],
+      left_knee:      [1.000, 1.000, 1.000, 1.000],
+      right_knee:     [1.000, 1.000, 0.933, 0.933],
+      left_ankle:     [1.000, 1.000, 0.933, 0.933],
+      right_ankle:    [1.000, 1.000, 0.867, 0.867],
+    }
+  },
+  right: {
+    modelName: 'Train140',
+    sideLabel: '右側',
+    sideClass: 'right',
+    overallFine: { f1:'0.979', pr:'P=0.979 · R=0.979' },
+    overallBase: { f1:'0.884', pr:'P=0.887 · R=0.882' },
+    overallDelta: { p:'+0.092', r:'+0.097' },
+    footer: ['TRAIN140 · right side · RTMPose labels · side KPT profile',
+             'Test: side_right_yellowonly_rtmpose · n=238'],
+    legend: 'Train140（右側 fine-tuned）',
+    kpts: {
+      nose:           [0.929, 0.929, 1.000, 1.000],
+      left_eye:       [0.929, 0.929, 1.000, 0.929],
+      right_eye:      [0.929, 0.929, 1.000, 1.000],
+      left_ear:       [0.929, 0.929, 0.000, 0.000],
+      right_ear:      [1.000, 1.000, 1.000, 1.000],
+      left_shoulder:  [1.000, 1.000, 1.000, 1.000],
+      right_shoulder: [1.000, 1.000, 1.000, 1.000],
+      left_elbow:     [1.000, 1.000, 0.643, 0.643],
+      right_elbow:    [1.000, 1.000, 1.000, 1.000],
+      left_wrist:     [0.929, 0.929, 0.714, 0.714],
+      right_wrist:    [1.000, 1.000, 1.000, 1.000],
+      left_hip:       [1.000, 1.000, 1.000, 1.000],
+      right_hip:      [1.000, 1.000, 1.000, 1.000],
+      left_knee:      [1.000, 1.000, 1.000, 1.000],
+      right_knee:     [1.000, 1.000, 0.929, 0.929],
+      left_ankle:     [1.000, 1.000, 0.786, 0.786],
+      right_ankle:    [1.000, 1.000, 1.000, 1.000],
+    }
+  }
+};
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function fmt(v) { return v.toFixed(3); }
+
+function valClass(v, isBaseline) {
+  if (isBaseline) return v < 0.7 ? 'bad' : v < 0.95 ? 'warn' : '';
+  return v >= 1.0 ? 'good' : v >= 0.93 ? 'good' : 'warn';
+}
+
+function deltaClass(d) {
+  if (d > 0.001) return 'pos';
+  if (d < -0.001) return 'neg';
+  return 'zero';
+}
+
+function deltaStr(d) {
+  if (d > 0.001) return '+' + d.toFixed(3);
+  if (d < -0.001) return d.toFixed(3);
+  return '±0.000';
+}
+
+function barRow(who, val, isBaseline) {
+  const pct = (val * 100).toFixed(1);
+  const cls = isBaseline ? 'fill-base' : 'fill-fine';
+  const vc  = valClass(val, isBaseline);
+  return `<div class="bar-row">
+    <span class="bar-who">${who}</span>
+    <div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+    <span class="bar-val ${vc}">${fmt(val)}</span>
+  </div>`;
+}
+
+function dualBar(fineVal, baseVal) {
+  return `<div class="dual-bar">${barRow('fine', fineVal, false)}${barRow('base', baseVal, true)}</div>`;
+}
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function render(side) {
+  const d = DATA[side];
+
+  // summary
+  document.getElementById('base-f1').textContent = d.overallBase.f1;
+  document.getElementById('base-pr').textContent = d.overallBase.pr;
+  document.getElementById('fine-f1').textContent = d.overallFine.f1;
+  document.getElementById('fine-pr').textContent = d.overallFine.pr;
+  document.getElementById('model-name').innerHTML =
+    `${d.modelName} <span class="side-label ${d.sideClass}">${d.sideLabel}</span>`;
+  document.getElementById('legend-fine').textContent = d.legend;
+  document.getElementById('footer-left').textContent = d.footer[0];
+  document.getElementById('footer-right').textContent = d.footer[1];
+
+  // table
+  const tbody = document.getElementById('table-body');
+  let html = '';
+
+  GROUPS.forEach(g => {
+    html += `<tr class="group-header"><td colspan="5">${g.label}</td></tr>`;
+    g.keys.forEach(key => {
+      const kp   = KEYPOINTS.find(k => k.en === key);
+      const vals = d.kpts[key];
+      const fP = vals[0], fR = vals[1], bP = vals[2], bR = vals[3];
+      const dP = fP - bP, dR = fR - bR;
+
+      // highlight row if baseline is bad
+      const rowStyle = (bP < 0.5 || bR < 0.5) ? ' style="background:#fffbf4"' : '';
+
+      html += `<tr${rowStyle}>
+        <td class="kpt-name-cell">
+          <div class="kpt-zh">${kp.zh}</div>
+          <div class="kpt-en">${key}</div>
+        </td>
+        <td class="bar-cell">${dualBar(fP, bP)}</td>
+        <td class="bar-cell">${dualBar(fR, bR)}</td>
+        <td class="center"><span class="delta ${deltaClass(dP)}">${deltaStr(dP)}</span></td>
+        <td class="center"><span class="delta ${deltaClass(dR)}">${deltaStr(dR)}</span></td>
+      </tr>`;
+    });
+  });
+
+  // total row
+  const fine = d.overallFine;
+  const base = d.overallBase;
+  const fPtot = parseFloat(fine.pr.split('P=')[1]);
+  const fRtot = parseFloat(fine.pr.split('R=')[1]);
+  const bPtot = parseFloat(base.pr.split('P=')[1]);
+  const bRtot = parseFloat(base.pr.split('R=')[1]);
+
+  html += `<tr class="total-row">
+    <td class="kpt-name-cell">
+      <div class="kpt-zh">整體平均</div>
+      <div class="kpt-en">MICRO AVG</div>
+    </td>
+    <td class="bar-cell">${dualBar(fPtot, bPtot)}</td>
+    <td class="bar-cell">${dualBar(fRtot, bRtot)}</td>
+    <td class="center"><span class="delta pos">${d.overallDelta.p}</span></td>
+    <td class="center"><span class="delta pos">${d.overallDelta.r}</span></td>
+  </tr>`;
+
+  tbody.innerHTML = html;
+}
+
+// ── Toggle ───────────────────────────────────────────────────────────────────
+function switchSide(side) {
+  document.getElementById('btn-left').classList.toggle('active', side === 'left');
+  document.getElementById('btn-right').classList.toggle('active', side === 'right');
+  render(side);
+}
+
+// Init
+render('left');
+</script>
+</body>
+</html>
